@@ -1,0 +1,93 @@
+ <html ng-app="FirebaseApp">
+   <head>
+     <script src="bower_components/angular/angular.min.js"></script>
+     <script src="bower_components/leaflet/dist/leaflet.js"></script>
+     <script src="bower_components/angular-leaflet-directive/dist/angular-leaflet-directive.js"></script>
+     <link rel="stylesheet" href="bower_components/leaflet/dist/leaflet.css" />
+
+     <!-- Firebase -->
+    <script src="https://cdn.firebase.com/js/client/2.0.4/firebase.js"></script>
+    <!-- AngularFire -->
+    <script src="https://cdn.firebase.com/libs/angularfire/0.9.1/angularfire.min.js"></script>
+
+     <!--[if lte IE 8]>
+         <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.4/leaflet.ie.css" />
+     <![endif]-->
+     <script>
+         var app = angular.module("FirebaseApp", ["leaflet-directive","firebase"]);
+         app.controller("MapsController", [ "$scope", "$firebase", function($scope, $firebase) {
+
+            //firebase reference
+            Firebase_Url = "XXXXXX"
+            var ref = new Firebase(Firebase_Url);
+
+
+            angular.extend($scope, {
+                    san_francisco: {
+                        lat: 37.82,
+                        lng: -122.37,
+                        zoom: 12
+                        // draggable: true
+                    },
+                    tiles: {
+                        url: "http://{s}.tile.cloudmade.com/1a1b06b230af4efdbb989ea99e9841af/997/256/{z}/{x}/{y}.png"
+                            },
+                    defaults: {
+                        scrollWheelZoom: true
+                    }
+                });
+
+            var markersRef = ref.child("Markers")
+
+            // binding firebase ref to the $scope
+            $scope.markers= $firebase(markersRef).$asArray()
+            console.log($scope.markers)
+
+            $scope.$on("leafletDirectiveMap.click", function(event, args){
+                var leafEvent = args.leafletEvent;
+                $scope.markers.$add({
+                    lat: leafEvent.latlng.lat,
+                    lng: leafEvent.latlng.lng,
+                    message: "testing",
+                    draggable: true
+                });
+            });
+
+            //when a marker has been clicked
+            $scope.$on("leafletDirectiveMarker.click", function(event,args){
+
+            })
+
+            // marker saves to new location
+            $scope.$on("leafletDirectiveMarker.dragend", function(event,args){
+
+                var leafEvent = args.leafletEvent;
+
+                // FOR SOME REASON GETTING GETTING THE ID LIKE THIS SEEMS CONVOLUTED
+                var key = leafEvent.target.options.$id
+                item=$scope.markers.$getRecord(key)
+
+                currentTime = new Date()
+
+                item.message = "marker last dragged on: " + currentTime.toTimeString()
+                $scope.markers.$save(item)
+
+            })
+
+            $scope.removeMarkers = function() {
+                    $scope.markers.$remove(0);
+                }
+
+         }]);
+     </script>
+     <style>
+         .angular-leaflet-map {
+             height: 90%;
+         }
+     </style>
+   </head>
+   <body ng-controller="MapsController">
+     <leaflet center="san_francisco" tiles="tiles" defaults="defaults" markers="markers"></leaflet>
+     <a href="#" ng-click="removeMarkers()">Remove markers</a>
+   </body>
+ </html>
